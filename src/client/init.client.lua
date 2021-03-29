@@ -27,7 +27,7 @@ local ClientData = {
     IgniteCooldown = 1,
     ColorChangeCooldown = 0.5,
     BlockCooldown = 1,
-    
+
     SlashCooldown = "AnimationBased"
 }
 
@@ -50,6 +50,7 @@ Humanoid.Died:Connect(
     function()
         ContextActionService:UnbindAction("Ignite")
         ContextActionService:UnbindAction("ChangeColor")
+        ContextActionService:UnbindAction("Slash")
     end
 )
 
@@ -107,3 +108,9 @@ ContextActionService:BindAction(
     false,
     Enum.KeyCode.R
 )
+
+ContextActionService:BindAction("Slash", function(name, state, obj)
+    if (state == Enum.UserInputState.Begin) then
+        -- slash here
+    end
+end)
