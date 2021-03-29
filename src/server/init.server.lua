@@ -15,8 +15,6 @@
     > Client
         - Handles input. 
 ]]
-
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -26,9 +24,37 @@ local Debris = game:GetService("Debris")
 local SFX = Workspace:WaitForChild("SFX")
 local Sounds = ServerStorage:WaitForChild("Sounds")
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Models = {
     Saber = ReplicatedStorage:WaitForChild("Saber")
-};
+}
+
+require(Modules.Credits)()
+
+local ServerData = {
+    --[[
+        Order: 
+        Red,
+        Blue,
+        Light Blue,
+        Green,
+        Yellow-Green,
+        Purple,
+        Yellow,
+        White,
+        Black
+    ]]
+    LightsaberColors = {
+        [1] = Color3.fromRGB(0, 25, 199),
+        [2] = Color3.fromRGB(255, 0, 0),
+        [3] = Color3.fromRGB(51, 80, 107),
+        [4] = Color3.fromRGB(26, 80, 35),
+        [5] = Color3.fromRGB(66, 85, 30),
+        [6] = Color3.fromRGB(116, 48, 194),
+        [7] = Color3.fromRGB(127, 121, 43),
+        [8] = Color3.fromRGB(83, 83, 83)
+    }
+}
 
 local function play_sound(sound)
     -- only for one-time sounds, sustained differ
@@ -38,94 +64,172 @@ local function play_sound(sound)
     clone:Play()
     Debris:AddItem(clone, clone.TimeLength)
 end
-
-Remotes._SaberEvent.OnServerEvent:Connect(function(plr, data)
-    if (data == nil) or (data.Action == nil) then
-        plr:Kick("No exploiting. | Tagged: Data argument passed is nil.")
-        return;
-    end
-
-    local Action = data.Action
-    local PlayerFolder = plr:FindFirstChild("LightsaberData")
-
-    if (PlayerFolder) then
-        if (Action == "Ignite") then
-            -- ignite
-            local is_active = PlayerFolder.Active
-            local returned = Remotes._SaberComm:InvokeClient(
-                plr,
-                "get_state",
-                {
-                   States = {"PrevIgnite", "IgniteCooldown"}
-                }
-            )
-            local prev_ignite = returned.PrevIgnite
-            local ignite_cooldown = returned.IgniteCooldown
-
-            if (os.clock() - prev_ignite) < ignite_cooldown then
-                if (is_active.Value == false) then
-                    -- ignite
-                    play_sound("Ignite")
-                    is_active.Value = (not is_active.Value)
-
-                    coroutine.resume(coroutine.create(function()
-                        local saber_model = plr.Character:FindFirstChild("Saber")
-                        if (saber_model) then
-                            local blade = saber_model.Blade
-                            for _,obj in pairs(blade:GetDescendants()) do
-                                if (obj:IsA("ParticleEmitter")) then
-                                    obj.Enabled = true
-                                end
-                            end
+local function update_color(saber, currentColor)
+    coroutine.resume(
+        coroutine.create(
+            function()
+                local clr_value = table.find(ServerData.LightsaberColors, currentColor)
+                if (clr_value ~= nil) then
+                    for _, emitter in pairs(saber:GetDescendants()) do
+                        if (emitter:IsA("ParticleEmitter")) and (emitter.Name == "Outer") then
+                            -- change color here
+                            emitter.Color = ColorSequence.new(ServerData.LightsaberColors[clr_value])
                         end
-                    end))
-                    return;
-                end
-                if (is_active.Value == true) then
-                    -- de-ignite
-                    play_sound("Extinguish")
-                    is_active.Value = (not is_active.Value)
-
-                    coroutine.resume(coroutine.create(function()
-                        local saber_model = plr.Character:FindFirstChild("Saber")
-                        if (saber_model) then
-                            local blade = saber_model.Blade
-                            for _,obj in pairs(blade:GetDescendants()) do
-                                if (obj:IsA("ParticleEmitter")) then
-                                    obj.Enabled = false
-                                end
-                            end
-                        end
-                    end))
-                    return;
+                    end
                 end
             end
-            
+        )
+    )
+end
+
+Remotes._SaberEvent.OnServerEvent:Connect(
+    function(plr, data)
+        if (data == nil) or (data.Action == nil) then
+            plr:Kick("No exploiting. | Tagged: Data argument passed is nil.")
+            return
+        end
+
+        local Action = data.Action
+        local PlayerFolder = plr:FindFirstChild("LightsaberData")
+
+        if (PlayerFolder) then
+            if (Action == "Ignite") then
+                -- ignite
+                local is_active = PlayerFolder.Active
+                local returned =
+                    Remotes._SaberComm:InvokeClient(
+                    plr,
+                    "get_state",
+                    {
+                        States = {"PrevIgnite", "IgniteCooldown"}
+                    }
+                )
+                local prev_ignite = returned.PrevIgnite
+                local ignite_cooldown = returned.IgniteCooldown
+
+                if (os.clock() - prev_ignite) < ignite_cooldown then
+                    if (is_active.Value == false) then
+                        -- ignite
+                        play_sound("Ignite")
+                        is_active.Value = (not is_active.Value)
+
+                        coroutine.resume(
+                            coroutine.create(
+                                function()
+                                    local saber_model = plr.Character:FindFirstChild("Saber")
+                                    if (saber_model) then
+                                        local blade = saber_model.Blade
+                                        for _, obj in pairs(blade:GetDescendants()) do
+                                            if (obj:IsA("ParticleEmitter")) then
+                                                obj.Enabled = true
+                                            end
+                                        end
+                                    end
+                                end
+                            )
+                        )
+                        return
+                    end
+                    if (is_active.Value == true) then
+                        -- de-ignite
+                        play_sound("Extinguish")
+                        is_active.Value = (not is_active.Value)
+
+                        coroutine.resume(
+                            coroutine.create(
+                                function()
+                                    local saber_model = plr.Character:FindFirstChild("Saber")
+                                    if (saber_model) then
+                                        local blade = saber_model.Blade
+                                        for _, obj in pairs(blade:GetDescendants()) do
+                                            if (obj:IsA("ParticleEmitter")) then
+                                                obj.Enabled = false
+                                            end
+                                        end
+                                    end
+                                end
+                            )
+                        )
+                        return
+                    end
+                end
+            end
+
+            if (Action == "ChangeColor") then
+                local returned =
+                    Remotes._SaberComm:InvokeClient(
+                    plr,
+                    "get_state",
+                    {
+                        States = {"PrevColorChange", "ColorChangeCooldown"}
+                    }
+                )
+                local prev_color_change = returned.PrevColorChange
+                local cooldown = returned.ColorChangeCooldown
+
+                if (os.clock() - prev_color_change) < cooldown then
+                    -- good
+                    local current_color = PlayerFolder.Color
+                    local _index = table.find(ServerData.LightsaberColors, current_color.Value)
+
+                    if (_index ~= nil) then
+                        -- works
+                        --//warn("Current color is " .. tostring(ServerData.LightsaberColors[_index]) .. ".")
+
+                        if (_index == #ServerData.LightsaberColors) then
+                            -- max
+                            _index = 1
+                            current_color.Value = ServerData.LightsaberColors[_index]
+                        else
+                            _index = _index + 1
+                            current_color.Value = ServerData.LightsaberColors[_index]
+                        end
+
+                        if (plr.Character:FindFirstChild("Saber")) then
+                            update_color(plr.Character.Saber, current_color.Value)
+                        end
+                    end
+                end
+            end
         end
     end
-end)
+)
 
-Players.PlayerAdded:Connect(function(plr)
-    local folder = Instance.new("Folder")
-    folder.Name = "LightsaberData"
+Players.PlayerAdded:Connect(
+    function(plr)
+        local folder = Instance.new("Folder")
+        folder.Name = "LightsaberData"
 
-    folder.Parent = plr
+        folder.Parent = plr
 
-    local ignited = Instance.new("BoolValue")
-    ignited.Name = "Active"
-    ignited.Value = false
-    ignited.Parent = folder
+        local ignited = Instance.new("BoolValue")
+        ignited.Name = "Active"
+        ignited.Value = false
+        ignited.Parent = folder
 
-    local color = Instance.new("Color3Value")
-    color.Name = "Color"
-    color.Value = Color3.fromRGB(255,0,0)
-    color.Parent = folder
+        local color = Instance.new("Color3Value")
+        color.Name = "Color"
+        color.Value = ServerData.LightsaberColors[1]
+        color.Parent = folder
 
-    plr.CharacterAppearanceLoaded:Connect(function(char)
-        warn(plr.Name.." needs to get his lightsaber initiated.")
+        plr.CharacterAppearanceLoaded:Connect(
+            function(char)
+                local humanoid = char:WaitForChild("Humanoid")
 
-        local _clone = Models.Saber:Clone()
-        _clone.Weld.Part1 = char:WaitForChild("Right Arm")
-        _clone.Parent = char
-    end)
-end)
+                warn(plr.Name .. " needs to get his lightsaber initiated.")
+
+                local _clone = Models.Saber:Clone()
+                _clone.Weld.Part1 = char:WaitForChild("Right Arm")
+                _clone.Parent = char
+
+                humanoid.Died:Connect(
+                    function()
+                        if (char:FindFirstChild("Saber")) then
+                            char.Saber:Destroy()
+                        end
+                    end
+                )
+            end
+        )
+    end
+)
