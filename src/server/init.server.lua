@@ -212,6 +212,29 @@ Players.PlayerAdded:Connect(
         color.Value = ServerData.LightsaberColors[1]
         color.Parent = folder
 
+        ignited:GetPropertyChangedSignal("Value"):Connect(function()
+            local _val = ignited.Value
+            if (_val == true) then
+                Remotes._SaberEvent:FireClient(
+                    plr,
+                    "PlayAnimation",
+                    {
+                        Name = "Saber_Idle"
+                    }
+                )
+            end
+            if (_val == false) then
+                Remotes._SaberEvent:FireClient(
+                    plr,
+                    "EndAnimation",
+                    {
+                        Name = "Saber_Idle",
+                        Time = 0.09,
+                    }
+                )
+            end
+        end)
+
         plr.CharacterAppearanceLoaded:Connect(
             function(char)
                 local humanoid = char:WaitForChild("Humanoid")
