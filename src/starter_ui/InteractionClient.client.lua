@@ -127,7 +127,7 @@ Prompt.Triggered:Connect(
                             color_frame:TweenPosition(
                                 UDim2.new(0.051, 0, 0.159, 0),
                                 Enum.EasingDirection.Out,
-                                Enum.EasingStyle.Sine,
+                                Enum.EasingStyle.Quint,
                                 0.5,
                                 true
                             )
@@ -137,7 +137,7 @@ Prompt.Triggered:Connect(
                             color_frame:TweenPosition(
                                 UDim2.new(-0.2, 0, 0.159, 0),
                                 Enum.EasingDirection.Out,
-                                Enum.EasingStyle.Sine,
+                                Enum.EasingStyle.Quint,
                                 0.5,
                                 true
                             )
@@ -202,7 +202,7 @@ Prompt.Triggered:Connect(
                         color_frame:TweenPosition(
                             UDim2.new(-0.2, 0, 0.159, 0),
                             Enum.EasingDirection.Out,
-                            Enum.EasingStyle.Sine,
+                            Enum.EasingStyle.Quint,
                             0.5,
                             true
                         )
@@ -230,7 +230,7 @@ Prompt.Triggered:Connect(
                         ContextActionService:UnbindAction("Inspect_Saber")
                         coroutine.resume(coroutine.create(function()
                             for _,v in pairs(ClickConnections) do
-                                if (v) then
+                                if (v ~= nil) then
                                     v:Disconnect()
                                     print("Disconnected event: ".. v.Name..'.')
                                 end
@@ -270,14 +270,14 @@ Prompt.Triggered:Connect(
                             }
                         ):Play()
                         wait(1)
-                        play_sound("Ignite")
+                        play_sound("Extinguish")
                         for _, emitter in pairs(_view:GetDescendants()) do
                             if (emitter:IsA("ParticleEmitter")) then
                                 emitter.Enabled = false
                             end
                         end
 
-                        wait(1.5)
+                        wait(.6)
 
                         Camera.CameraType = Enum.CameraType.Custom
                         wait(1)
