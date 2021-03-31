@@ -46,7 +46,7 @@ local function load_anims()
             for _, obj in pairs(class:GetChildren()) do
                 if (obj:IsA("Animation")) and (not anim_tbl[class.Name][obj.Name]) then
                     anim_tbl[class.Name][obj.Name] = Humanoid:LoadAnimation(obj)
-                    print(obj.Name)
+                   -- print(obj.Name)
                 end
             end
         end

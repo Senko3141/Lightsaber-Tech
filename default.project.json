@@ -12,6 +12,11 @@
         "$path": "src/server"
       }
     },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "$ignoreUnknownInstances": true,
+      "$path": "src/starter_ui"
+    },
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {
