@@ -156,39 +156,13 @@ Remotes._SaberEvent.OnServerEvent:Connect(
             end
 
             if (Action == "ChangeColor") then
-                local returned =
-                    Remotes._SaberComm:InvokeClient(
-                    plr,
-                    "get_state",
-                    {
-                        States = {"PrevColorChange", "ColorChangeCooldown"}
-                    }
-                )
-                local prev_color_change = returned.PrevColorChange
-                local cooldown = returned.ColorChangeCooldown
+                local chosen_color = data.New
+                -- good
+                local current_color = PlayerFolder.Color
 
-                if (os.clock() - prev_color_change) < cooldown then
-                    -- good
-                    local current_color = PlayerFolder.Color
-                    local _index = table.find(ServerData.LightsaberColors, current_color.Value)
-
-                    if (_index ~= nil) then
-                        -- works
-                        --//warn("Current color is " .. tostring(ServerData.LightsaberColors[_index]) .. ".")
-
-                        if (_index == #ServerData.LightsaberColors) then
-                            -- max
-                            _index = 1
-                            current_color.Value = ServerData.LightsaberColors[_index]
-                        else
-                            _index = _index + 1
-                            current_color.Value = ServerData.LightsaberColors[_index]
-                        end
-
-                        if (plr.Character:FindFirstChild("Saber")) then
-                            update_color(plr.Character.Saber, current_color.Value)
-                        end
-                    end
+                if (ServerData.LightsaberColors[table.find(ServerData.LightsaberColors, chosen_color)]) ~= nil then
+                    current_color.Value = chosen_color
+                    update_color(plr.Character.Saber, current_color.Value)
                 end
             end
         end
@@ -212,28 +186,30 @@ Players.PlayerAdded:Connect(
         color.Value = ServerData.LightsaberColors[1]
         color.Parent = folder
 
-        ignited:GetPropertyChangedSignal("Value"):Connect(function()
-            local _val = ignited.Value
-            if (_val == true) then
-                Remotes._SaberEvent:FireClient(
-                    plr,
-                    "PlayAnimation",
-                    {
-                        Name = "Saber_Idle"
-                    }
-                )
+        ignited:GetPropertyChangedSignal("Value"):Connect(
+            function()
+                local _val = ignited.Value
+                if (_val == true) then
+                    Remotes._SaberEvent:FireClient(
+                        plr,
+                        "PlayAnimation",
+                        {
+                            Name = "Saber_Idle"
+                        }
+                    )
+                end
+                if (_val == false) then
+                    Remotes._SaberEvent:FireClient(
+                        plr,
+                        "EndAnimation",
+                        {
+                            Name = "Saber_Idle",
+                            Time = 0.09
+                        }
+                    )
+                end
             end
-            if (_val == false) then
-                Remotes._SaberEvent:FireClient(
-                    plr,
-                    "EndAnimation",
-                    {
-                        Name = "Saber_Idle",
-                        Time = 0.09,
-                    }
-                )
-            end
-        end)
+        )
 
         plr.CharacterAppearanceLoaded:Connect(
             function(char)

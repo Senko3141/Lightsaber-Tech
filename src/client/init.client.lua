@@ -63,19 +63,11 @@ local function toggle_ignite()
         }
     )
 end
-local function change_color()
-    Remotes._SaberEvent:FireServer(
-        {
-            Action = "ChangeColor"
-        }
-    )
-end
 
 Humanoid.Died:Connect(
     function()
         unload_anims()
         ContextActionService:UnbindAction("Ignite")
-        ContextActionService:UnbindAction("ChangeColor")
         ContextActionService:UnbindAction("Slash")
     end
 )
@@ -134,28 +126,6 @@ ContextActionService:BindAction(
     Enum.KeyCode.Q
 )
 
-ContextActionService:BindAction(
-    "ChangeColor",
-    function(name, state, obj)
-        if (state == Enum.UserInputState.Begin) then
-            if (Humanoid.Health == 0) then
-                return -- dead
-            end
-
-            if (LightsaberData:FindFirstChild("Active") ~= nil) then
-                if (LightsaberData.Active.Value == false) then
-                    return -- not activated
-                end
-            end
-            if (os.clock() - ClientData.PrevColorChange) >= ClientData.ColorChangeCooldown then
-                ClientData.PrevColorChange = os.clock()
-                change_color()
-            end
-        end
-    end,
-    false,
-    Enum.KeyCode.R
-)
 
 ContextActionService:BindAction(
     "Slash",

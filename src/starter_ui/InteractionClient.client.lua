@@ -15,6 +15,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
 local Sounds = ReplicatedStorage:WaitForChild("Sounds")
@@ -34,7 +35,17 @@ local ClientData = {
     SaberRotationScale = 2,
     PreviousMove = os.clock(),
     MoveCooldown = 1,
-    Moving = false
+    Moving = false,
+    LightsaberColors = {
+        ["Blue"] = Color3.fromRGB(0, 25, 199),
+        ["Red"] = Color3.fromRGB(255, 0, 0),
+        ["Light Blue"] = Color3.fromRGB(51, 80, 107),
+        ["Green"] = Color3.fromRGB(26, 80, 35),
+        ["Yellow-Green"] = Color3.fromRGB(66, 85, 30),
+        ["Purple"] = Color3.fromRGB(116, 48, 194),
+        ["Yellow"] = Color3.fromRGB(127, 121, 43),
+        ["White"] = Color3.fromRGB(83, 83, 83)
+    }
 }
 
 local function play_sound(sound)
@@ -103,6 +114,8 @@ Prompt.Triggered:Connect(
                 --{0.5, 0},{0.122, 0}
                 --{0.404, 0},{0.896, 0} finish button final
 
+                local ClickConnections = {}
+
                 local hilt_frame = customization_ui.HiltsFrame
                 local color_frame = customization_ui.ColorFrame
 
@@ -112,65 +125,8 @@ Prompt.Triggered:Connect(
                 local selection_frame = customization_ui.Selection
                 local finish_button = customization_ui.Finish
 
-                -- adding connections
-                local ClickConnections = {}
-
                 local ColorButton = selection_frame.Buttons.Color
                 local HiltsButton = selection_frame.Buttons.Hilt
-
-                ClickConnections[ColorButton.Name] = ColorButton.MouseButton1Click:Connect(
-                    function()
-                        colorsf_open = (not colorsf_open)
-
-                        if (colorsf_open == true) then
-                            -- open
-                            color_frame:TweenPosition(
-                                UDim2.new(0.051, 0, 0.159, 0),
-                                Enum.EasingDirection.Out,
-                                Enum.EasingStyle.Quint,
-                                0.5,
-                                true
-                            )
-                        end
-                        if (colorsf_open == false) then
-                            -- close
-                            color_frame:TweenPosition(
-                                UDim2.new(-0.2, 0, 0.159, 0),
-                                Enum.EasingDirection.Out,
-                                Enum.EasingStyle.Quint,
-                                0.5,
-                                true
-                            )
-                        end
-                    end
-                )
-
-                ClickConnections[HiltsButton.Name] = HiltsButton.MouseButton1Click:Connect(
-                    function()
-                        hiltsf_open = (not hiltsf_open)
-
-                        if (hiltsf_open == true) then
-                            -- open
-                            hilt_frame:TweenPosition(
-                                UDim2.new(0.816, 0, 0.159, 0),
-                                Enum.EasingDirection.Out,
-                                Enum.EasingStyle.Quint,
-                                0.5,
-                                true
-                            )
-                        end
-                        if (hiltsf_open == false) then
-                            -- close
-                            hilt_frame:TweenPosition(
-                                UDim2.new(1.2, 0, 0.159, 0),
-                                Enum.EasingDirection.Out,
-                                Enum.EasingStyle.Quint,
-                                0.5,
-                                true
-                            )
-                        end
-                    end
-                )
 
                 local function tween_assets(type)
                     if (type == "In") then
@@ -225,17 +181,78 @@ Prompt.Triggered:Connect(
                     end
                 end
 
-                ClickConnections[finish_button.Name] = finish_button.MouseButton1Click:Connect(
+                ClickConnections[ColorButton.Name] =
+                    ColorButton.MouseButton1Click:Connect(
+                    function()
+                        colorsf_open = (not colorsf_open)
+
+                        if (colorsf_open == true) then
+                            -- open
+                            color_frame:TweenPosition(
+                                UDim2.new(0.051, 0, 0.159, 0),
+                                Enum.EasingDirection.Out,
+                                Enum.EasingStyle.Quint,
+                                0.5,
+                                true
+                            )
+                        end
+                        if (colorsf_open == false) then
+                            -- close
+                            color_frame:TweenPosition(
+                                UDim2.new(-0.2, 0, 0.159, 0),
+                                Enum.EasingDirection.Out,
+                                Enum.EasingStyle.Quint,
+                                0.5,
+                                true
+                            )
+                        end
+                    end
+                )
+
+                ClickConnections[HiltsButton.Name] =
+                    HiltsButton.MouseButton1Click:Connect(
+                    function()
+                        hiltsf_open = (not hiltsf_open)
+
+                        if (hiltsf_open == true) then
+                            -- open
+                            hilt_frame:TweenPosition(
+                                UDim2.new(0.816, 0, 0.159, 0),
+                                Enum.EasingDirection.Out,
+                                Enum.EasingStyle.Quint,
+                                0.5,
+                                true
+                            )
+                        end
+                        if (hiltsf_open == false) then
+                            -- close
+                            hilt_frame:TweenPosition(
+                                UDim2.new(1.2, 0, 0.159, 0),
+                                Enum.EasingDirection.Out,
+                                Enum.EasingStyle.Quint,
+                                0.5,
+                                true
+                            )
+                        end
+                    end
+                )
+
+                ClickConnections[finish_button.Name] =
+                    finish_button.MouseButton1Click:Connect(
                     function()
                         ContextActionService:UnbindAction("Inspect_Saber")
-                        coroutine.resume(coroutine.create(function()
-                            for _,v in pairs(ClickConnections) do
-                                if (v ~= nil) then
-                                    v:Disconnect()
-                                    print("Disconnected event: ".. v.Name..'.')
+                        coroutine.resume(
+                            coroutine.create(
+                                function()
+                                    for _, v in pairs(ClickConnections) do
+                                        if (v ~= nil) then
+                                            v:Disconnect()
+                                            print("Disconnected event: " .. v.Name .. ".")
+                                        end
+                                    end
                                 end
-                            end
-                        end))
+                            )
+                        )
 
                         if (ClientData.Moving == true) then
                             TweenService:Create(
@@ -282,9 +299,41 @@ Prompt.Triggered:Connect(
                         Camera.CameraType = Enum.CameraType.Custom
                         wait(1)
                         Prompt.Enabled = true
-
                     end
                 )
+
+                for _, obj in pairs(color_frame.Buttons:GetChildren()) do
+                    if (obj:IsA("TextButton")) then
+                        ClickConnections[obj.Name .. "Button"] =
+                            obj.MouseButton1Click:Connect(
+                            function()
+                                if (ClientData.LightsaberColors[obj.Name]) ~= nil then
+                                    -- change color
+
+                                    -- update saber color
+                                    local _blade = _view.Blade
+                                    for _, emitter in pairs(_blade:GetDescendants()) do
+                                        if (emitter:IsA("ParticleEmitter")) and (emitter.Name == "Outer") then
+                                            emitter.Color =
+                                                ColorSequence.new(
+                                                ClientData.LightsaberColors[obj.Name]
+                                            )
+                                            print "test"
+                                        end
+                                    end
+                                    Remotes._SaberEvent:FireServer(
+                                        {
+                                            Action = "ChangeColor",
+                                            ["New"] = ClientData.LightsaberColors[obj.Name]
+                                        }
+                                    )
+                                end
+
+                                print("Update lightsaber color " .. obj.Name .. ".")
+                            end
+                        )
+                    end
+                end
 
                 tween_assets("In")
                 -- binding actions
