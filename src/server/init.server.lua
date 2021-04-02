@@ -25,36 +25,16 @@ local SFX = Workspace:WaitForChild("SFX")
 local Sounds = ServerStorage:WaitForChild("Sounds")
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local Modules = ReplicatedStorage:WaitForChild("Modules")
-local Models = {
-    Saber = ReplicatedStorage:WaitForChild("Saber")
-}
+local SaberModels = ReplicatedStorage:WaitForChild("SaberModels")
+
+local LightsaberInfo = require(Modules.LightsaberInfo)
 
 require(Modules.Credits)()
 
-local ServerData = {
-    --[[
-        Order: 
-        Red,
-        Blue,
-        Light Blue,
-        Green,
-        Yellow-Green,
-        Purple,
-        Yellow,
-        White,
-        Black
-    ]]
-    LightsaberColors = {
-        [1] = Color3.fromRGB(0, 25, 199),
-        [2] = Color3.fromRGB(255, 0, 0),
-        [3] = Color3.fromRGB(51, 80, 107),
-        [4] = Color3.fromRGB(26, 80, 35),
-        [5] = Color3.fromRGB(66, 85, 30),
-        [6] = Color3.fromRGB(116, 48, 194),
-        [7] = Color3.fromRGB(127, 121, 43),
-        [8] = Color3.fromRGB(83, 83, 83)
-    }
-}
+local ServerData = {}
+
+ServerData.LightsaberColors = LightsaberInfo.LightsaberColors.Server
+ServerData.Hilts = LightsaberInfo.Hilts.Server
 
 local function play_sound(sound)
     -- only for one-time sounds, sustained differ
@@ -165,6 +145,37 @@ Remotes._SaberEvent.OnServerEvent:Connect(
                     update_color(plr.Character.Saber, current_color.Value)
                 end
             end
+
+            if (Action == "ChangeHilt") then
+                local chosen_hilt = data.New
+
+                if (ServerData.Hilts[chosen_hilt]) ~= nil then
+                    -- works
+                    PlayerFolder.CurrentHilt.Value = chosen_hilt
+
+                    -- destroy current saber
+
+                    for _, v in pairs(plr.Character:GetChildren()) do
+                        if (v:GetAttribute("IsSaber")) ~= nil and (v:GetAttribute("IsSaber")) == true then
+                            v:Destroy()
+                        end
+                    end
+
+                    local _clone = SaberModels:FindFirstChild(PlayerFolder.CurrentHilt.Value):Clone()
+                    _clone.Name = "Saber"
+                    _clone.Weld.Part1 = plr.Character:WaitForChild("Right Arm")
+                    _clone.Parent = plr.Character
+
+                    for _, emitter in pairs(_clone:GetDescendants()) do
+                        if (emitter:IsA("ParticleEmitter")) and (emitter.Name == "Outer") then
+                            -- change color here
+                            emitter.Color = ColorSequence.new(PlayerFolder.Color.Value)
+                        end
+                    end
+                else
+                    plr:Kick("No exploiting.")
+                end
+            end
         end
     end
 )
@@ -185,6 +196,11 @@ Players.PlayerAdded:Connect(
         color.Name = "Color"
         color.Value = ServerData.LightsaberColors[1]
         color.Parent = folder
+
+        local current_hilt = Instance.new("StringValue")
+        current_hilt.Name = "CurrentHilt"
+        current_hilt.Value = "DefaultSaber"
+        current_hilt.Parent = folder
 
         ignited:GetPropertyChangedSignal("Value"):Connect(
             function()
@@ -217,14 +233,30 @@ Players.PlayerAdded:Connect(
 
                 warn(plr.Name .. " needs to get his lightsaber initiated.")
 
-                local _clone = Models.Saber:Clone()
+                local _clone = SaberModels:FindFirstChild(current_hilt.Value):Clone()
+                _clone.Name = "Saber"
                 _clone.Weld.Part1 = char:WaitForChild("Right Arm")
                 _clone.Parent = char
 
+                coroutine.resume(
+                    coroutine.create(
+                        function()
+                            for _, emitter in pairs(_clone:GetDescendants()) do
+                                if (emitter:IsA("ParticleEmitter")) and (emitter.Name == "Outer") then
+                                    -- change color here
+                                    emitter.Color = ColorSequence.new(color.Value)
+                                end
+                            end
+                        end
+                    )
+                )
+
                 humanoid.Died:Connect(
                     function()
-                        if (char:FindFirstChild("Saber")) then
-                            char.Saber:Destroy()
+                        for _, v in pairs(char:GetChildren()) do
+                            if (v:GetAttribute("IsSaber")) ~= nil and (v:GetAttribute("IsSaber")) == true then
+                                v:Destroy()
+                            end
                         end
                     end
                 )

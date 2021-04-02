@@ -2,6 +2,10 @@
 -- Senko
 -- 3/31/2021
 
+--[[
+    TODO: Make it to whenever you interact with the table, your lightsaber is de-ignited, and you can't ignite until you're done.
+]]
+
 if (not game:IsLoaded()) then
     game.Loaded:Wait()
 end
@@ -23,6 +27,10 @@ local Table = Workspace:WaitForChild("Table")
 local Camera = Workspace.CurrentCamera
 local Player_Gui = script.Parent
 local SFX = Workspace:WaitForChild("SFX")
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+
+local LightsaberInfo = require(Modules.LightsaberInfo)
+local PlayerData = Player:WaitForChild("LightsaberData")
 
 local Prompt = Table:FindFirstChild("Prompt")
 if (Prompt == nil) then
@@ -30,23 +38,16 @@ if (Prompt == nil) then
 end
 
 local ClientData = {
-    OriginOffset = CFrame.Angles(0, math.rad(180), 0) * CFrame.new(0, 0, 6),
+    OriginOffset = CFrame.Angles(0, math.rad(180), 0) * CFrame.new(0, 0, 5.4),
     SaberMovementScale = Vector2.new(-50, -50),
     SaberRotationScale = 2,
     PreviousMove = os.clock(),
     MoveCooldown = 1,
     Moving = false,
-    LightsaberColors = {
-        ["Blue"] = Color3.fromRGB(0, 25, 199),
-        ["Red"] = Color3.fromRGB(255, 0, 0),
-        ["Light Blue"] = Color3.fromRGB(51, 80, 107),
-        ["Green"] = Color3.fromRGB(26, 80, 35),
-        ["Yellow-Green"] = Color3.fromRGB(66, 85, 30),
-        ["Purple"] = Color3.fromRGB(116, 48, 194),
-        ["Yellow"] = Color3.fromRGB(127, 121, 43),
-        ["White"] = Color3.fromRGB(83, 83, 83)
-    }
 }
+
+ClientData.LightsaberColors = LightsaberInfo.LightsaberColors.Client
+ClientData.Hilts = LightsaberInfo.Hilts.Client
 
 local function play_sound(sound)
     -- only for one-time sounds, sustained differ
@@ -64,7 +65,7 @@ Prompt.Triggered:Connect(
     function(plr)
         print(plr.Name)
 
-        local _view = Workspace:FindFirstChild("Saber_View")
+        local _view = Workspace:FindFirstChild("Saber_View").Hilt_Part
         if (_view ~= nil) then
             Prompt.Enabled = false
             local original_cf = CFrame.new(_view.Origin.WorldPosition) * ClientData.OriginOffset
@@ -241,18 +242,18 @@ Prompt.Triggered:Connect(
                     finish_button.MouseButton1Click:Connect(
                     function()
                         ContextActionService:UnbindAction("Inspect_Saber")
-                        coroutine.resume(
-                            coroutine.create(
-                                function()
-                                    for _, v in pairs(ClickConnections) do
-                                        if (v ~= nil) then
-                                            v:Disconnect()
-                                            print("Disconnected event: " .. v.Name .. ".")
-                                        end
-                                    end
-                                end
-                            )
-                        )
+
+                        local disconnected_list = {}
+                        for _name, v in pairs(ClickConnections) do
+                            if (v ~= nil) then
+                                table.insert(disconnected_list, #disconnected_list + 1, _name)
+                                v:Disconnect()
+                            end
+                        end
+
+                        if (#disconnected_list > 0) then
+                            warn("Disconnected events: " .. table.concat(disconnected_list, " ") .. "\nAmount DC'ed: " .. tostring(#disconnected_list))
+                        end
 
                         if (ClientData.Moving == true) then
                             TweenService:Create(
@@ -302,9 +303,10 @@ Prompt.Triggered:Connect(
                     end
                 )
 
+                -- changing colors
                 for _, obj in pairs(color_frame.Buttons:GetChildren()) do
                     if (obj:IsA("TextButton")) then
-                        ClickConnections[obj.Name .. "Button"] =
+                        ClickConnections[obj.Name .. "Button/Color"] =
                             obj.MouseButton1Click:Connect(
                             function()
                                 if (ClientData.LightsaberColors[obj.Name]) ~= nil then
@@ -314,11 +316,7 @@ Prompt.Triggered:Connect(
                                     local _blade = _view.Blade
                                     for _, emitter in pairs(_blade:GetDescendants()) do
                                         if (emitter:IsA("ParticleEmitter")) and (emitter.Name == "Outer") then
-                                            emitter.Color =
-                                                ColorSequence.new(
-                                                ClientData.LightsaberColors[obj.Name]
-                                            )
-                                            print "test"
+                                            emitter.Color = ColorSequence.new(ClientData.LightsaberColors[obj.Name])
                                         end
                                     end
                                     Remotes._SaberEvent:FireServer(
@@ -330,6 +328,54 @@ Prompt.Triggered:Connect(
                                 end
 
                                 print("Update lightsaber color " .. obj.Name .. ".")
+                            end
+                        )
+                    end
+                end
+
+                -- changing hilts
+                for _, obj in pairs(hilt_frame.Buttons:GetChildren()) do
+                    if (obj:IsA("TextButton")) then
+                        ClickConnections[obj.Name .. "Button/Hilt"] =
+                            obj.MouseButton1Click:Connect(
+                            function()
+                                -- update hilt
+                                print("Update hilt to " .. obj.Name .. ".")
+
+                                -- checking if valid
+
+                                if (ClientData.Hilts[obj.Name] ~= nil) then
+                                    -- works
+                                    if (_view:FindFirstChild(obj.Name)) ~= nil then
+                                        -- change hilt
+                                        Remotes._SaberEvent:FireServer(
+                                            {
+                                                Action = "ChangeHilt",
+                                                ["New"] = obj.Name
+                                            }
+                                        )
+                                        wait(.1)
+
+                                        -- update view via client, oh well exploiters lol
+
+                                        
+                                        for _,h in pairs(_view:GetChildren()) do
+                                            if (h:GetAttribute("IsSaber")) ~= nil and (h:GetAttribute("IsSaber")) == true then
+                                                -- is a saber\
+                                                if (h.Transparency == 0) then
+                                                    h.Transparency = 1
+                                                end
+                                            end
+                                        end
+
+                                        -- changing transparency of NEW saber
+                                        if (_view:FindFirstChild(PlayerData.CurrentHilt.Value)) ~= nil then
+                                            _view[PlayerData.CurrentHilt.Value].Transparency = 0
+                                        end
+
+                                    end
+                                end
+                                    
                             end
                         )
                     end
